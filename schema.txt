@@ -1,0 +1,33 @@
+## Datastore Schema (nerdy stuff)
+
+conversations: This table holds the various conversations scraped from the slack channel.
+	id TEXT PK // This is the slack ts conversation ID for the given top level conversation.
+	hash TEXT // This is the md5 (default) hash of the top level message, useful for caching and change tracking.
+	messages TEXT // This is a json-serialized string of every message object in the conversation
+	userinfo TEXT // This is a json-serialized string of every user profile involved in the conversation
+
+
+knowledge: This table holds questions and answers that have been distilled as a knowledgebase for answering.
+    id TEXT PK
+	question TEXT // a particular question matching a conversation
+	answer TEXT // the answer to the question
+	nuance TEXT // special considerations or nuance about the qa
+	conversation_id TEXT // This is optional, we might have a QA that's not from a conversation
+
+learning: This table holds potential learning opportunities from conversations for knowledge eval.
+    id TEXT PK 
+	conversation_id TEXT
+	evaluation TEXT // an AI generated evaluation of the question
+	question TEXT // an AI generated question
+	answer TEXT // an AI derived answer based on learning
+	nuance TEXT // special considerations that the qa depend on
+	state TEXT // (possibly "NEW", "SKIPPED", "READY", "APPROVED", "REJECTED", "ADDED")
+
+assistant: This table holds potential answer information for a given conversation
+    id TEXT PK
+	conversation_id TEXT // This has to be unique because there will only be one answer per conversation
+	user_id TEXT // This is the user_id of the person that initiated the request
+	response TEXT // the AI generated response
+    sources TEXT // a list of line item sources that were used to derive the response.
+	feedback TEXT // optional feedback that the user may give after reading the response
+	state TEXT // (possibly "NEW", "READY", "NOANSWER", "ANSWERED", "APPROVED", "REJECTED")

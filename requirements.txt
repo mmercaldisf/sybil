@@ -1,0 +1,8 @@
+Flask==3.0.3
+Flask_HTTPAuth==4.8.0
+openai==1.29.0
+python-dotenv==1.0.1
+slack_bolt==1.18.1
+slack_sdk==3.26.2
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9

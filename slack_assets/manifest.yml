@@ -1,0 +1,37 @@
+display_information:
+  name: Sybil
+  description: A Helpful AI Bot for Q&A
+  background_color: "#0e1f52"
+features:
+  bot_user:
+    display_name: Sybil
+    always_online: false
+oauth_config:
+  scopes:
+    bot:
+      - channels:history
+      - channels:read
+      - chat:write
+      - chat:write.customize
+      - emoji:read
+      - files:read
+      - links:read
+      - links:write
+      - metadata.message:read
+      - reactions:read
+      - reactions:write
+      - team:read
+      - usergroups:read
+      - users.profile:read
+      - users:read
+settings:
+  event_subscriptions:
+    bot_events:
+      - message.channels
+      - reaction_added
+      - reaction_removed
+  interactivity:
+    is_enabled: true
+  org_deploy_enabled: false
+  socket_mode_enabled: true
+  token_rotation_enabled: false

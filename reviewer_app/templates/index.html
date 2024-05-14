@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Review Entries</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif; /* Cleaner font */
+            padding: 20px;
+            background-color: #f4f4f4; /* Lighter background */
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .entry {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px; /* Space between entries */
+            border-radius: 8px; /* Rounded corners */
+        }
+        textarea, input, select, button {
+            width: 100%; /* Full width elements */
+            padding: 8px; /* Padding for better text visibility */
+            margin-top: 10px; /* Top margin only */
+            box-sizing: border-box; /* Border and padding included in width */
+            border-radius: 4px; /* Rounded corners */
+        }
+        .readonly {
+            background-color: #e9e9e9; /* Grey background for readonly fields */
+            border: 1px solid #ccc; /* Slight border for definition */
+            resize: vertical; /* Allows vertical resizing */
+            overflow: auto; /* Adds scrollbars when expanded beyond the initial height */
+        }
+        label {
+            display: block; /* Label on new line */
+            margin-top: 20px; /* Space above label */
+            color: #555; /* Dark grey color for text */
+        }
+        button {
+            background-color: #5cb85c; /* Green background */
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #4cae4c; /* Darker green on hover */
+        }
+    </style>
+</head>
+<body>
+    <h1>Learning Reviewer</h1>
+    {% for entry in entries %}
+    <div class="entry">
+        <!-- Non-editable fields for conversation details -->
+        <textarea class="readonly" readonly>Messages: {{ entry.messages }}</textarea>
+        <textarea class="readonly" readonly>User Info: {{ entry.userinfo }}</textarea>
+        <textarea class="readonly" readonly>Evaluation: {{ entry.evaluation }}</textarea>
+        
+        <!-- Editable fields for updating the entry -->
+        <form method="POST" action="/update">
+            <input type="hidden" name="id" value="{{ entry.id }}">
+            <label>Question:</label>
+            <textarea name="question">{{ entry.question }}</textarea>
+            <label>Answer:</label>
+            <textarea name="answer">{{ entry.answer }}</textarea>
+            <label>Nuance:</label>
+            <textarea name="nuance">{{ entry.nuance }}</textarea>
+            <label>Source:</label>
+            <input type="text" name="source" value="{{ entry.source }}">
+            <select name="state">
+                <option value="APPROVED">Approve</option>
+                <option value="REJECTED">Reject</option>
+            </select>
+            <button type="submit">Update</button>
+        </form>
+    </div>
+    {% endfor %}
+</body>
+</html>
