@@ -25,7 +25,6 @@ if __name__ == "__main__":
     threads.append(Thread(target=channel_manager_routine))
     threads.append(Thread(target=knowledge_manager_routine))
 
-    #threads.append(Thread(target=))
     for thread in threads:
         thread.daemon = True
         thread.start()
