@@ -5,27 +5,8 @@ import json
 
 import config
 import db_manager
+import llm_utils
 
-from openai import OpenAI
-
-def prompt_ai(prompt, system_message="",json_format=True):
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    messages = []
-    response_format = None
-    if json_format:
-        response_format = { "type": "json_object" }
-    if system_message:
-        messages.append({"role": "system", "content": system_message})
-    messages.append({"role": "user", "content": prompt})
-    completion = client.chat.completions.create(
-    model="gpt-4-turbo",
-    messages=messages,
-    response_format=response_format
-    )
-
-    if json_format:
-        return json.loads(completion.choices[0].message.content,strict=False)
-    return completion.choices[0].message.content
 
 def generate_answer(user_info, transcript, knowledgebase):
     prompt = """
@@ -48,7 +29,7 @@ def generate_answer(user_info, transcript, knowledgebase):
 
     """
 
-    response = prompt_ai(prompt)
+    response = llm_utils.get_json_response_from_llm(prompt)
     return response
 
 
@@ -78,7 +59,7 @@ def determine_answerable(user_info, transcript, knowledgebase):
 
     """
 
-    response = prompt_ai(prompt)
+    response = llm_utils.get_json_response_from_llm(prompt)
     return response
 
 def agent_assistant_routine():
@@ -101,7 +82,9 @@ def agent_assistant_routine():
                 transcript = config.create_message_transcript(conversation_info)
                 conversation_user_info = config.get_full_user_infos(transcript,conversation_info, user_info)
                 rendered_transcript = config.render_transcript(transcript)
-            except:
+            except Exception as e:
+                print("Assistant Processing Exception")
+                print(e)
                 continue        
             print(f"Processing Assistant Entry {entry.conversation_id}")
             evaluation = determine_answerable(conversation_user_info,rendered_transcript,knowledgebase_rendering)

@@ -5,28 +5,8 @@ import json
 import os
 import time
 
+import llm_utils
 import config
-
-from openai import OpenAI
-
-def prompt_ai(prompt, system_message="",json_format=True):
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    messages = []
-    response_format = None
-    if json_format:
-        response_format = { "type": "json_object" }
-    if system_message:
-        messages.append({"role": "system", "content": system_message})
-    messages.append({"role": "user", "content": prompt})
-    completion = client.chat.completions.create(
-    model="gpt-4-turbo",
-    messages=messages,
-    response_format=response_format
-    )
-
-    if json_format:
-        return json.loads(completion.choices[0].message.content,strict=False)
-    return completion.choices[0].message.content
 
 
 # AI EVALUATION STEP
@@ -54,7 +34,7 @@ def generate_evaluation(user_info, transcript):
     """
 
 
-    response = prompt_ai(prompt)
+    response = llm_utils.get_json_response_from_llm(prompt)
     return response
 
 def generate_qan(user_info, transcript, evaluation_data):
@@ -78,7 +58,7 @@ def generate_qan(user_info, transcript, evaluation_data):
     ```""" + evaluation_data + """```
 
      """
-    response = prompt_ai(prompt)
+    response = llm_utils.get_json_response_from_llm(prompt)
     return response    
 
 def agent_learning_routine():
