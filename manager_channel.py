@@ -36,7 +36,8 @@ def fetch_all_top_level_messages_from_user(client, channel_id, user_id, timestam
             latest=timestamp_cutoff,
             limit=200  # Adjust the number of messages per API call (up to 1000)
         )
-        messages.extend([msg for msg in response['messages'] if msg.get('user') == user_id])
+        
+        messages.extend([msg for msg in response['messages'] if msg.get('user') == user_id or msg.get('bot_id') == user_id])
 
         # Slack uses a "response_metadata" object with a "next_cursor" to indicate more results
         cursor = response.get('response_metadata', {}).get('next_cursor')
@@ -49,13 +50,14 @@ def get_all_contributors(client, messages):
     contributors = {}
     for msg in messages:
         try:
-            user_info = client.users_info(user=msg['user'])['user']
-            contributors[msg['user']] = user_info
+            if 'user' in msg:
+                user_info = client.users_info(user=msg['user'])['user']
+                contributors[msg['user']] = user_info
             # We also have to parse the message text for any mentions and include those too.
             mentions = re.findall(r"<@(U\w+)>", msg['text'])
             for mention in mentions:
                 if mention not in contributors:
-                    try:
+                    try:                        
                         user_info = client.users_info(user=mention)['user']
                         contributors[mention] = user_info
                     except:
@@ -93,7 +95,6 @@ def channel_manager_routine():
     while config.SERVICE_RUNNING:
         # Get All Top Level Messages
         messages = fetch_all_top_level_messages_from_user(client, channel_id, bot_id)
-
         for message in messages:
             if is_new_message(db, message["ts"]):
                 # Get All Thread Messages
@@ -114,4 +115,5 @@ def channel_manager_routine():
         time.sleep(config.SCRAPER_INTERVAL)
 
 if __name__ == "__main__":
+    config.SERVICE_RUNNING = True
     channel_manager_routine()
