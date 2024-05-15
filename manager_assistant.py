@@ -69,7 +69,8 @@ def is_message_help_request(message_text):
 def is_request_complete(messages):
     for message in messages:
         message_text = message['text']
-        if config.WORKFLOW_COMPLETE_MESSAGE in message_text and message['user'] == config.WORKFLOW_BOT_ID:
+        target_user = message.get('user') or message.get('bot_id')
+        if config.WORKFLOW_COMPLETE_MESSAGE in message_text and target_user == config.TARGET_BOT_ID:
             return True
     return False
 
@@ -112,7 +113,7 @@ def assistant_manager_routine():
             # Get the answer
             answer_text = answer.response
             # Send the answer
-            send_bot_message(client, channel_id, answer_text, thread_ts=answer.conversation_id)
+            send_bot_message(client, channel_id, answer_text + "\n\n" + config.ANSWER_DISCLAIMER, thread_ts=answer.conversation_id)
             send_bot_block_message(client, channel_id, config.QUESTION_PROMPT_MESSAGE, YES_NO_BLOCK, thread_ts=answer.conversation_id)
             # Update the assistant entry
             db.update_assistant(answer.conversation_id, state="RESPONDED")
@@ -121,4 +122,5 @@ def assistant_manager_routine():
         time.sleep(config.ASSISTANT_INTERVAL)
 
 if __name__ == "__main__":
+    config.SERVICE_RUNNING = True    
     assistant_manager_routine()

@@ -198,4 +198,5 @@ def feedback_manager_routine():
 
 
 if __name__ == "__main__":
+    config.SERVICE_RUNNING = True    
     feedback_manager_routine()

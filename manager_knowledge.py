@@ -20,7 +20,8 @@ def is_message_help_request(message_text):
 def is_request_complete(messages):
     for message in messages:
         message_text = message['text']
-        if config.WORKFLOW_COMPLETE_MESSAGE in message_text and message['user'] == config.TARGET_BOT_ID:
+        target_user = message.get('user') or message.get('bot_id')
+        if config.WORKFLOW_COMPLETE_MESSAGE in message_text and target_user == config.TARGET_BOT_ID:
             return True
     return False
 
@@ -64,4 +65,5 @@ def knowledge_manager_routine():
         time.sleep(config.LEARNING_INTERVAL)
 
 if __name__ == "__main__":
+    config.SERVICE_RUNNING = True    
     knowledge_manager_routine()

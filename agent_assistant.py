@@ -83,7 +83,7 @@ def agent_assistant_routine():
                 conversation_user_info = config.get_full_user_infos(transcript,conversation_info, user_info)
                 rendered_transcript = config.render_transcript(transcript)
             except Exception as e:
-                print("Assistant Processing Exception")
+                print(f"Error processing Assistant Entry {entry.conversation_id}")
                 print(e)
                 continue        
             print(f"Processing Assistant Entry {entry.conversation_id}")
@@ -104,5 +104,6 @@ def agent_assistant_routine():
         time.sleep(config.ASSISTANT_AGENT_INTERVAL)
 
 if __name__ == "__main__":
+    config.SERVICE_RUNNING = True
     agent_assistant_routine()    
 

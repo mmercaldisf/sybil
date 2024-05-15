@@ -77,7 +77,9 @@ def agent_learning_routine():
                 transcript = config.create_message_transcript(conversation_info)
                 conversation_user_info = config.get_full_user_infos(transcript,conversation_info, user_info)
                 rendered_transcript = config.render_transcript(transcript)
-            except:
+            except Exception as e:
+                print(f"Error processing Learning Entry {entry.conversation_id}")
+                print(e)
                 continue        
             print(f"Processing Learning Entry {entry.id}")
             evaluation = generate_evaluation(conversation_user_info,rendered_transcript)
@@ -98,5 +100,6 @@ def agent_learning_routine():
         time.sleep(config.LEARNING_AGENT_INTERVAL)
 
 if __name__ == "__main__":
+    config.SERVICE_RUNNING = True
     agent_learning_routine()    
 
