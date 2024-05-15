@@ -46,7 +46,8 @@ def determine_answerable(user_info, transcript, knowledgebase):
     Provide your analysis in the following JSON format:
     - "feedback": "Your detailed feedback on the possibility of resolving the request using the knowledgebase.",
     - "answerable": "YES/NO" (State whether the request can be answered using the knowledgebase based on your evaluation.)
-    - "references": [Question IDs] (List the IDs of relevant Question/Answer pairs from the knowledgebase that could address this request, if any.)
+    - "references": [Question ID numbers] (e.g. [4,1,2,7]) (List the numbers of relevant Question/Answer pairs from the knowledgebase that could address this request, if any.)
+
 
     ## TRANSCRIPT ##
     ```""" + transcript + """```
@@ -71,16 +72,21 @@ def agent_assistant_routine():
         knowledgebase = db.get_all_knowledge()
         knowledgebase_rendering = ""
         for entry in knowledgebase:
-            knowledgebase_rendering += f"ID: {entry.id} Question: {entry.question}\nAnswer: {entry.answer}\nNuance: {entry.nuance}\n\n"
+            knowledgebase_rendering += f"KBID: {entry.id} Question: {entry.question}\nAnswer: {entry.answer}\nNuance: {entry.nuance}\n\n"
         for entry in new_entries:
             conversation = db.get_conversation(entry.conversation_id)
+            if not conversation:
+                continue
             conversation_info = json.loads(conversation.messages,strict=False)
             user_info = json.loads(conversation.userinfo,strict=False)
             conversation_user_info = ""
             rendered_transcript = ""
             try:
+ 
                 transcript = config.create_message_transcript(conversation_info)
+
                 conversation_user_info = config.get_full_user_infos(transcript,conversation_info, user_info)
+
                 rendered_transcript = config.render_transcript(transcript)
             except Exception as e:
                 print(f"Error processing Assistant Entry {entry.conversation_id}")
@@ -94,9 +100,13 @@ def agent_assistant_routine():
                 continue
             else:
                 tkb = ""
-                for ref_entry in evaluation['references']:
-                    ref_entry -= 1
-                    tkb += f"ID: {ref_entry} Question: {knowledgebase[ref_entry].question}\nAnswer: {knowledgebase[ref_entry].answer}\nNuance: {knowledgebase[ref_entry].nuance}\n\n"
+                
+                for ref_entry in evaluation['references']:                    
+                    knowledge_entry = db.get_knowledge(ref_entry)
+                    if knowledge_entry is None:
+                        print("Knowledge Entry: %s Not Found, Skipping..." % ref_entry)
+                        continue
+                    tkb += f"ID: {ref_entry} Question: {knowledge_entry.question}\nAnswer: {knowledge_entry.answer}\nNuance: {knowledge_entry.nuance}\n\n"
                 response = generate_answer(conversation_user_info,rendered_transcript,tkb)
                 db.update_assistant(entry.conversation_id, response=response['response'],sources=json.dumps(evaluation['references']), state="ANSWERED")     
                 processed_count+=1     
