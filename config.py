@@ -117,7 +117,9 @@ def render_transcript(transcript):
 
 def render_user_info(user_info, user_id):
 
-    user = user_info[user_id]
+    user = user_info.get(user_id)
+    if not user:
+        return ""
 
     response = "----\n"
     response += f"User ID: {user_id}\n"
@@ -133,8 +135,6 @@ def get_full_user_infos(transcript, conv_info, user_info):
     contributors.add(transcript['request_form']['username'])
     for message in conv_info:
         user_id = message.get('user') or message.get('bot_id')
-        if user_id not in user_info:
-            continue
         contributors.add(user_id)
     
     for user_id in contributors:
