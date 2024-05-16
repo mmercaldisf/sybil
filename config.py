@@ -30,6 +30,9 @@ LEARNING_INTERVAL = 30
 LEARNING_AGENT_INTERVAL = 30
 ASSISTANT_AGENT_INTERVAL = 30
 
+# Logic Flags
+# -- This flag determines whether the bot will respond to messages in the channel if it has no knowledgebase content to reference
+STRICT_ANSWERING_MODE = True
 
 # Set the Message Detection Items for the Workflow
 WORKFLOW_MESSAGE_PREAMBLE = "*Name of Submitter:*"

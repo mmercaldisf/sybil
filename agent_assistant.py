@@ -94,22 +94,39 @@ def agent_assistant_routine():
                 continue        
             print(f"Processing Assistant Entry {entry.conversation_id}")
             evaluation = determine_answerable(conversation_user_info,rendered_transcript,knowledgebase_rendering)
-            if evaluation['answerable'] == "NO":
+
+            # Check if the evaluation response is valid and if the request was deemed answerable
+            if not 'answerable' in evaluation or evaluation['answerable'].upper() == "NO":
+                print("Response deemed not answerable, skipping...")
                 db.update_assistant(entry.conversation_id, state="NOANSWER")
-                processed_count+=1
+                processed_count+=1                
                 continue
-            else:
-                tkb = ""
-                
-                for ref_entry in evaluation['references']:                    
-                    knowledge_entry = db.get_knowledge(ref_entry)
-                    if knowledge_entry is None:
-                        print("Knowledge Entry: %s Not Found, Skipping..." % ref_entry)
-                        continue
-                    tkb += f"ID: {ref_entry} Question: {knowledge_entry.question}\nAnswer: {knowledge_entry.answer}\nNuance: {knowledge_entry.nuance}\n\n"
-                response = generate_answer(conversation_user_info,rendered_transcript,tkb)
-                db.update_assistant(entry.conversation_id, response=response['response'],sources=json.dumps(evaluation['references']), state="ANSWERED")     
-                processed_count+=1     
+
+            # Refine and Verify our References
+            validated_references = []
+            if 'references' in evaluation and evaluation['references']:
+                if isinstance(evaluation['references'], list):
+                    for ref in evaluation['references']:
+                        if ref in [x.id for x in knowledgebase]:
+                            validated_references.append(ref)
+
+            evaluation['references'] = validated_references
+
+            # If we are in strict mode and no references were found, skip this entry
+            if not evaluation['references'] and config.STRICT_ANSWERING_MODE:
+                print("No verified references found, skipping...")
+                continue
+
+            tkb = ""
+            for ref_entry in evaluation['references']:
+                knowledge_entry = db.get_knowledge(ref_entry)
+                if knowledge_entry is None:
+                    print("Knowledge Entry: %s Not Found, Skipping..." % ref_entry)
+                    continue
+                tkb += f"ID: {ref_entry} Question: {knowledge_entry.question}\nAnswer: {knowledge_entry.answer}\nNuance: {knowledge_entry.nuance}\n\n"
+            response = generate_answer(conversation_user_info,rendered_transcript,tkb)
+            db.update_assistant(entry.conversation_id, response=response['response'],sources=json.dumps(evaluation['references']), state="ANSWERED")     
+            processed_count+=1     
         print(f"Processed {processed_count} assistant entries.")
         time.sleep(config.ASSISTANT_AGENT_INTERVAL)
 
