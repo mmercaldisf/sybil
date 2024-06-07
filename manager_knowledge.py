@@ -12,7 +12,12 @@ import db_manager
 
 # -- WebClient Stuff
 
-def is_message_help_request(message_text):
+def is_message_help_request(message_content):
+    if not 'blocks' in message_content:
+        return False
+    if not 'text' in message_content['blocks'][0]:
+        return False
+    message_text = message_content["blocks"][0]["text"]["text"]
     if not config.WORKFLOW_MESSAGE_PREAMBLE in message_text:
         return False
     return True
@@ -20,7 +25,10 @@ def is_message_help_request(message_text):
 def is_request_complete(messages):
     for message in messages:
         message_text = message['text']
+ 
         target_user = message.get('user') or message.get('bot_id')
+        if config.WORKFLOW_COMPLETE_MESSAGE_OLD in message_text and target_user == config.TARGET_BOT_ID:
+            return True
         if config.WORKFLOW_COMPLETE_MESSAGE in message_text and target_user == config.TARGET_BOT_ID:
             return True
     return False
@@ -46,10 +54,12 @@ def knowledge_manager_routine():
 
             # Check if the conversation is a help request
             messages = json.loads(conversation.messages,strict=False)
-            if not is_message_help_request(messages[0]['text']):
+            if not is_message_help_request(messages[0]):
+                #print(f"NOT A HELP REQUEST {messages[0]['ts']}")
                 continue
             # Check if the conversation is incomplete
             if not is_request_complete(messages):
+                #print(f"Message is not Closed {messages[0]['ts']}")
                 continue
 
             db.add_learning(conversation_id,"","","","")
@@ -62,6 +72,7 @@ def knowledge_manager_routine():
             db.update_learning(entry.conversation_id, state="ADDED")
             print(f"Learning Request {entry.conversation_id} - Added to Knowledge DB")
 
+        print("Knowledge Manager Routine Complete - Sleeping...")
         time.sleep(config.LEARNING_INTERVAL)
 
 if __name__ == "__main__":

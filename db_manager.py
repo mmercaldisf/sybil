@@ -13,7 +13,7 @@ Base = declarative_base()
 class Conversation(Base):
     __tablename__ = 'conversations'
     id = Column(String, primary_key=True)
-    hash = Column(String)
+    updated = Column(String)
     messages = Column(Text)
     userinfo = Column(Text)
 
@@ -59,8 +59,8 @@ class DBManager:
 
     # Conversation Table Operations
     def add_conversation(self, message_id, messages, userinfo):
-        hash = self.hash_message(messages[0]) if messages else None
-        conversation = Conversation(id=message_id, hash=hash, messages=json.dumps(messages, ensure_ascii=False), userinfo=json.dumps(userinfo, ensure_ascii=False))
+        updated = messages[0].get('latest_reply',"") if messages else ""
+        conversation = Conversation(id=message_id, updated=updated, messages=json.dumps(messages, ensure_ascii=False), userinfo=json.dumps(userinfo, ensure_ascii=False))
         self.session.add(conversation)
         self.session.commit()
 
@@ -75,7 +75,7 @@ class DBManager:
         if conversation:
             if messages:
                 conversation.messages = json.dumps(messages, ensure_ascii=False)
-                conversation.hash = self.hash_message(messages[0])
+                conversation.updated = messages[0].get("latest_reply","")
             if userinfo:
                 conversation.userinfo = json.dumps(userinfo, ensure_ascii=False)
             self.session.commit()

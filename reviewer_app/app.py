@@ -60,17 +60,19 @@ def index():
 def update_entry():
     entry_id = request.form['id']
     new_state = request.form['state']
+    if new_state == 'APPROVED':
+        db_manager.add_knowledge(question=request.form['question'],
+                                 answer=request.form['answer'],
+                                 nuance=request.form['nuance'],
+                                 sources=request.form['source'])
+        new_state = "ADDED"
     db_manager.update_learning(entry_id, 
                                question=request.form['question'], 
                                answer=request.form['answer'], 
                                nuance=request.form['nuance'], 
                                state=new_state)
 
-    if new_state == 'APPROVED':
-        db_manager.add_knowledge(question=request.form['question'],
-                                 answer=request.form['answer'],
-                                 nuance=request.form['nuance'],
-                                 sources=request.form['source'])
+
 
     return redirect(url_for('index'))
 

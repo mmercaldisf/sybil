@@ -10,7 +10,7 @@ import config
 
 
 # AI EVALUATION STEP
-def generate_evaluation(user_info, transcript):
+def generate_evaluation(user_info, req_info):
     prompt = """
     ## INSTRUCTIONS ##
     You are a Security Engineering Lead analyzing the provided conversation transcript. Your task is to evaluate the interaction and provide insights based on the following criteria:
@@ -26,10 +26,10 @@ def generate_evaluation(user_info, transcript):
     - "chatbot": "YES/NO"  (Indicate whether a chatbot could handle such a request based on current technology and available information.)
     - "justification": "Explain your reasoning for whether or not this request can be handled automatically by a chatbot."
 
-    ## TRANSCRIPT ##
-    ```""" + transcript + """```
+    ## REQUEST INFORMATION ##
+    ```""" + req_info + """```
 
-    ## USER INFO ##
+    ## USER INFORMATION ##
     ```""" + user_info + """```
     """
 
@@ -37,7 +37,8 @@ def generate_evaluation(user_info, transcript):
     response = llm_utils.get_json_response_from_llm(prompt)
     return response
 
-def generate_qan(user_info, transcript, evaluation_data):
+def generate_qan(user_info, req_info, evaluation_data):
+
     prompt = """
     ## INSTRUCTIONS ##
     You are a Security Engineering Lead tasked with creating a Question/Answer pair based on the provided conversation transcript. Your task is to generate a question that encapsulates the primary intent of the requester and an answer that effectively addresses their concern. Additionally, provide a nuance that captures the unique aspect of this interaction in the event that it is required for this question and answer to be relevant to a future inquiry.
@@ -48,10 +49,10 @@ def generate_qan(user_info, transcript, evaluation_data):
     - "answer": "Your generated answer here.",
     - "nuance": "Provide a nuanced detail that would qualify or disqualify this question and answer from being used in similar requests if necessary. If not, leave blank"
 
-    ## TRANSCRIPT ##
-    ```""" + transcript + """```
+    ## REQUEST INFORMATION ##
+    ```""" + req_info + """```
 
-    ## USER INFO ##
+    ## USER INFORMATION ##
     ```""" + user_info + """```
 
     ## EVALUATION DATA ##
@@ -61,6 +62,27 @@ def generate_qan(user_info, transcript, evaluation_data):
     response = llm_utils.get_json_response_from_llm(prompt)
     return response    
 
+def generate_request_information(db, conversation_id):
+    conversation = db.get_conversation(conversation_id)
+    if conversation is None:
+        print("Conversation ID Does not Exist")
+        return False, None
+    
+    messages_info = json.loads(conversation.messages,strict=False)
+    users_info = json.loads(conversation.userinfo,strict=False)
+
+    request_info = config.extract_request_information(messages_info)
+    rendered_request = config.render_request(request_info)
+    chat_transcript = config.generate_chat_transcript(messages_info)
+    user_infos = config.generate_user_info(users_info)
+
+    # Create Transcript
+    rinfo = {
+        "req_info":rendered_request + chat_transcript,
+        "user_info": user_infos
+    }
+    return True,rinfo
+
 def agent_learning_routine():
     print("Starting Learning Agent")
     db = db_manager.DBManager(config.DATABASE_URL)
@@ -68,21 +90,12 @@ def agent_learning_routine():
         processed_count = 0 
         new_learning_entries = db.get_learning_entries_with_state("NEW")
         for entry in new_learning_entries:
-            conversation = db.get_conversation(entry.conversation_id)
-            conversation_info = json.loads(conversation.messages,strict=False)
-            user_info = json.loads(conversation.userinfo,strict=False)
-            conversation_user_info = ""
-            rendered_transcript = ""
-            try:
-                transcript = config.create_message_transcript(conversation_info)
-                conversation_user_info = config.get_full_user_infos(transcript,conversation_info, user_info)
-                rendered_transcript = config.render_transcript(transcript)
-            except Exception as e:
-                print(f"Error processing Learning Entry {entry.conversation_id}")
-                print(e)
-                continue        
-            print(f"Processing Learning Entry {entry.id}")
-            evaluation = generate_evaluation(conversation_user_info,rendered_transcript)
+            print(f"Processing Learning Entry: {entry.conversation_id}...")
+            status, rinfo = generate_request_information(db, entry.conversation_id)
+            if status is False:
+                continue
+
+            evaluation = generate_evaluation(rinfo['user_info'],rinfo['req_info'])
             if evaluation['chatbot'] == "NO":
                 evaluation_text = f"Feedback: {evaluation['feedback']}\nChatbot: {evaluation['chatbot']}\nJustification: {evaluation['justification']}"
                 db.update_learning(entry.id,evaluation=evaluation_text, state="SKIPPED")
@@ -90,8 +103,12 @@ def agent_learning_routine():
                 continue
             else:
                 evaluation_text = f"Feedback: {evaluation['feedback']}\nChatbot: {evaluation['chatbot']}\nJustification: {evaluation['justification']}"
+                print(f"Summary: {evaluation['feedback']}\n\n")
+                print(f"Justification: {evaluation['justification']}\n\n")
+                print(f"Verdict: Accepted - Posted for Review")
+                print("---")
                 # Generate the Question / Answers and Nuance
-                qan = generate_qan(conversation_user_info,rendered_transcript,json.dumps(evaluation,ensure_ascii=False))
+                qan = generate_qan(rinfo['user_info'],rinfo['req_info'],json.dumps(evaluation,ensure_ascii=False))
                 #print(qan)
                 db.update_learning(entry.id,evaluation=evaluation_text, question=qan['question'],answer=qan['answer'],nuance=qan['nuance'], state="READY")
                 processed_count +=1

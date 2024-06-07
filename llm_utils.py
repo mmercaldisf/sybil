@@ -1,3 +1,4 @@
+import os
 import time 
 import dirtyjson 
 import json
@@ -6,12 +7,10 @@ import llm_gateway
 def get_json_response_from_llm(prompt,temperature=0.1):
     max_attempts = 3
     current_attempt = 0
-    while current_attempt < max_attempts:
-        current_attempt += 1
-        status,response = llm_gateway.generate(prompt,temperature=temperature)
-        if not status:
-            print("Failed to Send Request to LLM: %s " % response)
-            time.sleep(10)
+    while current_attempt < max_attempts:    
+        current_attempt +=1
+        response = llm_gateway.generate(prompt,temperature=temperature)
+        if not response:
             continue
         try:
             # nudge the response to json for leading issues.
@@ -25,19 +24,12 @@ def get_json_response_from_llm(prompt,temperature=0.1):
     print("Max Retries Exceeded - Giving Up...")
     return {}
 
+
 def get_response_from_llm(prompt,temperature=0.1):
-    max_attempts = 20
-    current_attempt = 0
-    while current_attempt < max_attempts:
-        current_attempt += 1
-        status,response = llm_gateway.generate(prompt,temperature=temperature)
-        if not status:
-            print("Failed to Send Request to LLM: %s " % response)
-            time.sleep(10)
-            continue
-        return response
-    print("Max Retries Exceeded - Giving Up...")
-    return ""
+    response = llm_gateway.generate(prompt,temperature=temperature)
+    if not response:
+        return ""
+    return response
 
 from openai import OpenAI
 

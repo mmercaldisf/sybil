@@ -51,47 +51,68 @@ load_dotenv(os.path.expanduser("~/.llm_gateway"))
 load_dotenv(".llm_gateway")
 load_dotenv("env.conf")
 
-# Load Custom Envars - Useful when an application already has its own.
-def load_custom_environment(env_path):
-    load_dotenv(env_path)
 
-API_BASE_URL = "https://bot-svc-llm.sfproxy.einstein.dev1-uswest2.aws.sfdc.cl"
-API_BASE_URL_BACKUP = "https://bot-svc-llm.sfproxy.einstein.aws-dev4-uswest2.aws.sfdc.cl"
-DEFAULT_MODEL = "gpt-4-32k"
-DEFAULT_TURBO_MODEL="gpt-4-1106-preview"
-ORG62_ORG_ID = "00DSG00000061ur2AA"
-MAX_BATCH_WORKERS=10
 
-def generate(prompt, model=DEFAULT_TURBO_MODEL, temperature=0):
-    
-    base_url = API_BASE_URL
-    
+def process_gateway_request(endpoint, data, max_attempts=0):
+    org_id = os.environ.get('LLM_ORG_ID',"00DSG00000061ur2AA")
+    tenant_id = os.environ.get("LLM_ORG_TENANT_ID",f"core/{org_id}/{org_id}")
+    base_url = os.environ.get("LLM_API_BASEURL", "https://bot-svc-llm.sfproxy.einstein.dev1-uswest2.aws.sfdc.cl")
+    url = f"{base_url}{endpoint}"
     headers = {
     'X-LLM-Provider': os.environ.get('LLM_GATEWAY_PROVIDER',"OpenAI"),
-    'X-Org-Id':os.environ.get('LLM_ORG_ID',ORG62_ORG_ID),
-    'Authorization': 'API_KEY %s' % os.environ.get("LLM_API_KEY","")
+    'X-Org-Id':org_id,
+    'Authorization': 'API_KEY %s' % os.environ.get("LLM_API_KEY","651192c5-37ff-440a-b930-7444c69f4422"),
+    'x-client-feature-id': os.environ.get("LLM_FEATURE_ID","Exploratory_Trial"),
+    'x-sfdc-core-tenantid': tenant_id
     }
+ 
+    sleep_time = 1
+    response_status = 0
+    request_attempt = 0
+    response = None
+    while response_status != 200:
+        r = requests.post(url, headers=headers, json=data, verify=root_ca_file.name)
+        response_status = r.status_code
+        if response_status == 429:
+            time.sleep(sleep_time)
+            sleep_time *=2
+            if max_attempts > 0:
+                request_attempt +=1
+                if request_attempt >= max_attempts:
+                    print("[LLM Gateway Request] Max Attempts Exceeded - Failing")
+                    return False, response
+            continue
+
+        # Fix the race condition with the gateway...
+        elif response_status == 400:
+            if "It must follow the correct tenantKey format" in r.text:
+                print("[LLM Gateway] Tenant ID Race Condition Hit, Retrying...")
+                continue
 
 
-    headers['x-client-feature-id'] = "SABotTest"
+        # TODO: Handle Other Edge Cases for Retry
+        if response_status == 200:
+            response = r.json()
+            return True, response
+        else:
+            print(f"[LLM Gateway] Request Failed: {response_status}")
+            print(r.text)
+        break
+    return False, response
 
+
+def generate(prompt, model="gpt-4-0125-preview", temperature=0.7, max_attempts=0):
     data = {
-    'prompt':prompt,
-    "temperature":temperature,
-    "model":model
+        "prompt":prompt,
+        "temperature":temperature,
+        "model":model
     }
-
-
-    response = requests.post("%s/v1.0/generations" % base_url,headers=headers,json=data, verify=root_ca_file.name)
-    if response.status_code == 200:
-        return True, response.json()['generations'][0]['text']
-    # Rate Limited - We'll wait a bit and try again.
-    elif response.status_code == 429: 
-        time.sleep(10)
-        response = requests.post("%s/v1.0/generations" % base_url,headers=headers,json=data, verify=SALESFORCE_ROOT_CA)
-        if response.status_code == 200:
-            return True, response.json()['generations'][0]['text']
-    return False, response.content
+    status, response = process_gateway_request("/v1.0/generations",data,max_attempts=max_attempts)
+    if status is False:
+        print("Generate Failed")
+        return None
+    response_text = response['generations'][0]['text']
+    return response_text
 
 
 if __name__ == "__main__":
