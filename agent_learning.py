@@ -37,6 +37,34 @@ def generate_evaluation(user_info, req_info):
     response = llm_utils.get_json_response_from_llm(prompt)
     return response
 
+def determine_answerable(user_info, req_info, knowledgebase):
+    prompt = """
+    ## INSTRUCTIONS ##
+    As a Security Engineering Lead, evaluate the provided conversation transcript to determine if it can be resolved using the knowledge available in our knowledgebase. Your analysis should cover the following aspects:
+    1. Clarify the main goal or concern of the requester by identifying the primary intent of their inquiry.
+    2. Determine if any existing Question/Answer pairs in the knowledgebase directly address the requester's issue.
+    3. Assess if the request is purely informational, needing only guidance, or if it requires specific actions by the security team to be effectively resolved.
+
+    ## OUTPUT FORMAT ##
+    Provide your analysis in the following JSON format:
+    - "feedback": "Your detailed feedback on the possibility of resolving the request using the knowledgebase.",
+    - "answerable": "YES/NO" (State whether the request can be answered using the knowledgebase based on your evaluation).   
+    - "references": [Question ID numbers] (e.g. [4,1,2,7]) (List the numbers of relevant Question/Answer pairs from the knowledgebase that could address this request, if any.)
+
+
+    ## REQUEST INFO ##
+    ```""" + req_info + """```
+
+    ## USER INFO ##
+    ```""" + user_info + """```
+
+    ## KNOWLEDGEBASE ##
+    ```""" + knowledgebase + """```
+    """
+
+    response = llm_utils.get_json_response_from_llm(prompt)
+    return response
+
 def generate_qan(user_info, req_info, evaluation_data):
 
     prompt = """
@@ -89,19 +117,36 @@ def agent_learning_routine():
     while config.SERVICE_RUNNING:
         processed_count = 0 
         new_learning_entries = db.get_learning_entries_with_state("NEW")
+        knowledgebase = db.get_all_knowledge()
+        knowledgebase_rendering = ""
+        for entry in knowledgebase:
+            knowledgebase_rendering += f"KBID: {entry.id} Question: {entry.question}\nAnswer: {entry.answer}\nNuance: {entry.nuance}\n\n"
+
         for entry in new_learning_entries:
             print(f"Processing Learning Entry: {entry.conversation_id}...")
             status, rinfo = generate_request_information(db, entry.conversation_id)
             if status is False:
                 continue
 
+            # First, determine if the item is already answerable from the knowledgebase, if so, we'll skip this.
+            answerability = determine_answerable(rinfo['user_info'],rinfo['req_info'],knowledgebase_rendering)            
+
+
+            if 'answerable' in answerability and answerability['answerable'].upper() == "YES":
+                print("Request Already Answerable - Skipping...")
+                answerability_text = "Request Already Answerable: " + str(answerability.get("references",[]))
+                db.update_learning(entry.id,evaluation=answerability_text, state="SKIPPED")
+                processed_count+=1
+                continue
+
             evaluation = generate_evaluation(rinfo['user_info'],rinfo['req_info'])
-            if evaluation['chatbot'] == "NO":
-                evaluation_text = f"Feedback: {evaluation['feedback']}\nChatbot: {evaluation['chatbot']}\nJustification: {evaluation['justification']}"
+            evaluation_text = f"Feedback: {evaluation['feedback']}\nChatbot: {evaluation['chatbot']}\nJustification: {evaluation['justification']}"
+
+            if evaluation['chatbot'] == "NO":                
                 db.update_learning(entry.id,evaluation=evaluation_text, state="SKIPPED")
                 processed_count+=1
                 continue
-            else:
+            else:                
                 evaluation_text = f"Feedback: {evaluation['feedback']}\nChatbot: {evaluation['chatbot']}\nJustification: {evaluation['justification']}"
                 print(f"Summary: {evaluation['feedback']}\n\n")
                 print(f"Justification: {evaluation['justification']}\n\n")

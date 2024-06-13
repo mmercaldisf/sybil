@@ -8,7 +8,7 @@ import db_manager
 import llm_utils
 
 
-def generate_answer(user_info, transcript, knowledgebase):
+def generate_answer(user_info, req_info, knowledgebase):
     prompt = """
     ## INSTRUCTIONS ##
     Assume the role of a Security Engineering Lead who is well-versed in security protocols and solutions. Using the detailed information available, respond to the requester's inquiry. Your answers should be informed and precise, as if you are consulting your extensive experience and knowledge in security engineering.
@@ -18,8 +18,8 @@ def generate_answer(user_info, transcript, knowledgebase):
     - "response": "Provide a well-informed response to the requester, utilizing your extensive security knowledge.",
     - "justification": "Explain the reasoning behind your response, referencing your depth of knowledge in the field."
 
-    ## TRANSCRIPT ##
-    ```""" + transcript + """```
+    ## REQUEST INFO ##
+    ```""" + req_info + """```
 
     ## USER INFO ##
     ```""" + user_info + """```
@@ -34,7 +34,7 @@ def generate_answer(user_info, transcript, knowledgebase):
 
 
 
-def determine_answerable(user_info, transcript, knowledgebase):
+def determine_answerable(user_info, req_info, knowledgebase):
     prompt = """
     ## INSTRUCTIONS ##
     As a Security Engineering Lead, evaluate the provided conversation transcript to determine if it can be resolved using the knowledge available in our knowledgebase. Your analysis should cover the following aspects:
@@ -49,8 +49,8 @@ def determine_answerable(user_info, transcript, knowledgebase):
     - "references": [Question ID numbers] (e.g. [4,1,2,7]) (List the numbers of relevant Question/Answer pairs from the knowledgebase that could address this request, if any.)
 
 
-    ## TRANSCRIPT ##
-    ```""" + transcript + """```
+    ## REQUEST INFO ##
+    ```""" + req_info + """```
 
     ## USER INFO ##
     ```""" + user_info + """```
@@ -63,6 +63,27 @@ def determine_answerable(user_info, transcript, knowledgebase):
     response = llm_utils.get_json_response_from_llm(prompt)
     return response
 
+def generate_request_information(db, conversation_id):
+    conversation = db.get_conversation(conversation_id)
+    if conversation is None:
+        print("Conversation ID Does not Exist")
+        return False, None
+    
+    messages_info = json.loads(conversation.messages,strict=False)
+    users_info = json.loads(conversation.userinfo,strict=False)
+
+    request_info = config.extract_request_information(messages_info)
+    rendered_request = config.render_request(request_info)
+    chat_transcript = config.generate_chat_transcript(messages_info)
+    user_infos = config.generate_user_info(users_info)
+
+    # Create Transcript
+    rinfo = {
+        "req_info":rendered_request + chat_transcript,
+        "user_info": user_infos
+    }
+    return True,rinfo
+
 def agent_assistant_routine():
     print("Starting Assistant Agent")
     db = db_manager.DBManager(config.DATABASE_URL)
@@ -74,26 +95,14 @@ def agent_assistant_routine():
         for entry in knowledgebase:
             knowledgebase_rendering += f"KBID: {entry.id} Question: {entry.question}\nAnswer: {entry.answer}\nNuance: {entry.nuance}\n\n"
         for entry in new_entries:
-            conversation = db.get_conversation(entry.conversation_id)
-            if not conversation:
-                continue
-            conversation_info = json.loads(conversation.messages,strict=False)
-            user_info = json.loads(conversation.userinfo,strict=False)
-            conversation_user_info = ""
-            rendered_transcript = ""
-            try:
- 
-                transcript = config.create_message_transcript(conversation_info)
-
-                conversation_user_info = config.get_full_user_infos(transcript,conversation_info, user_info)
-
-                rendered_transcript = config.render_transcript(transcript)
-            except Exception as e:
-                print(f"Error processing Assistant Entry {entry.conversation_id}")
-                print(e)
-                continue        
             print(f"Processing Assistant Entry {entry.conversation_id}")
-            evaluation = determine_answerable(conversation_user_info,rendered_transcript,knowledgebase_rendering)
+            status, rinfo = generate_request_information(db, entry.conversation_id)
+            if status is False:
+                continue
+
+             
+            
+            evaluation = determine_answerable(rinfo['user_info'],rinfo['req_info'],knowledgebase_rendering)
 
             # Check if the evaluation response is valid and if the request was deemed answerable
             if not 'answerable' in evaluation or evaluation['answerable'].upper() == "NO":
@@ -124,7 +133,7 @@ def agent_assistant_routine():
                     print("Knowledge Entry: %s Not Found, Skipping..." % ref_entry)
                     continue
                 tkb += f"ID: {ref_entry} Question: {knowledge_entry.question}\nAnswer: {knowledge_entry.answer}\nNuance: {knowledge_entry.nuance}\n\n"
-            response = generate_answer(conversation_user_info,rendered_transcript,tkb)
+            response = generate_answer(rinfo['user_info'],rinfo['req_info'],tkb)
             db.update_assistant(entry.conversation_id, response=response['response'],sources=json.dumps(evaluation['references']), state="ANSWERED")     
             processed_count+=1     
         print(f"Processed {processed_count} assistant entries.")
