@@ -63,7 +63,7 @@ def process_gateway_request(endpoint, data, max_attempts=0):
     'X-Org-Id':org_id,
     'Authorization': 'API_KEY %s' % os.environ.get("LLM_API_KEY","651192c5-37ff-440a-b930-7444c69f4422"),
     'x-client-feature-id': os.environ.get("LLM_FEATURE_ID","Exploratory_Trial"),
-    'x-sfdc-core-tenantid': tenant_id
+    'x-sfdc-core-tenant-id': tenant_id
     }
  
     sleep_time = 1
