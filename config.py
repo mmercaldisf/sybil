@@ -37,6 +37,9 @@ ASSISTANT_AGENT_INTERVAL = 30
 # -- This flag determines whether the bot will respond to messages in the channel if it has no knowledgebase content to reference
 STRICT_ANSWERING_MODE = True
 
+# -- This flag prevents the bot from actually answering anything in the channel, for testing purposes only.
+BLOCK_BOT_ANSWERING = True
+
 # Set the Message Detection Items for the Workflow
 WORKFLOW_MESSAGE_PREAMBLE = "*Name of Submitter:*"
 WORKFLOW_COMPLETE_MESSAGE = "Thank you for engaging with SA. Your request has now been completed."
@@ -160,3 +163,32 @@ def generate_chat_transcript(messages):
         cr = replies[ts]
         additional_message_content += f"{cr["user"]}: {cr["text"]}\n\n"
     return additional_message_content
+
+COMPLETED_REACTIONS = ["white_check_mark", "checkmark"]
+CLAIMED_REACTIONS = ["eyes"]
+
+def get_message_reactions(message):
+    reactions = []
+    if not 'reactions' in message:
+        return reactions
+    for item in message['reactions']:
+        reactions.append(item['name'])
+    return reactions
+
+def is_request_claimed(message):
+    reactions = get_message_reactions(message)
+
+    for cr in COMPLETED_REACTIONS:
+        if cr in reactions:
+            return True
+
+    return False
+
+def is_request_complete(message):
+    reactions = get_message_reactions(message)
+
+    for cr in COMPLETED_REACTIONS:
+        if cr in reactions:
+            return True
+
+    return False

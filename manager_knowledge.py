@@ -22,16 +22,6 @@ def is_message_help_request(message_content):
         return False
     return True
 
-def is_request_complete(messages):
-    for message in messages:
-        message_text = message['text']
- 
-        target_user = message.get('user') or message.get('bot_id')
-        if config.WORKFLOW_COMPLETE_MESSAGE_OLD in message_text and target_user == config.TARGET_BOT_ID:
-            return True
-        if config.WORKFLOW_COMPLETE_MESSAGE in message_text and target_user == config.TARGET_BOT_ID:
-            return True
-    return False
 
 def get_userid_from_message(message_text):
     return re.search(r"<@([UW]\w+)>", message_text).group(1)
@@ -58,7 +48,7 @@ def knowledge_manager_routine():
                 #print(f"NOT A HELP REQUEST {messages[0]['ts']}")
                 continue
             # Check if the conversation is incomplete
-            if not is_request_complete(messages):
+            if not config.is_request_complete(messages[0]):
                 #print(f"Message is not Closed {messages[0]['ts']}")
                 continue
 

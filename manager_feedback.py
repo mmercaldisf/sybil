@@ -52,13 +52,14 @@ def handle_yes_button(ack, body, client):
         text=config.APPROVE_MESSAGE,
         blocks=None  # Clear the blocks to just show the text message
     )
-
+    """
     # Add a reaction to the parent message in the thread
     client.reactions_add(
         channel=channel_id,
         timestamp=thread_ts,  # This is the ID of the parent message
         name="white_check_mark"
     )
+    """
 
     # Update the Assistant Entry that the answer was "APPROVED"
     db = db_manager.DBManager(config.DATABASE_URL)

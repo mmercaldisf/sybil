@@ -79,15 +79,23 @@ def fetch_all_thread_messages(client, channel_id, parent_ts):
     cursor = None
 
     # Keep paginating as long as there's a next cursor
+    max_attempts = 100
+    current_attempts = 0
+
     while True:
-
-        response = client.conversations_replies(
-            channel=channel_id,
-            ts=parent_ts,
-            cursor=cursor,
-            limit=200  # Adjust the number of messages per API call (up to 1000)
-        )
-
+        try:
+            response = client.conversations_replies(
+                channel=channel_id,
+                ts=parent_ts,
+                cursor=cursor,
+                limit=200  # Adjust the number of messages per API call (up to 1000)
+            )
+        except:
+            current_attempts+=1
+            if current_attempts >= max_attempts:
+                break
+            time.sleep(5)
+            continue
         messages.extend(response['messages'])
 
         # Slack uses a "response_metadata" object with a "next_cursor" to indicate more results
