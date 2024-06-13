@@ -105,9 +105,22 @@ class DBManager:
                 setattr(learning_entry, key, value)
             self.session.commit()
 
+    def update_learning_by_conversation_id(self, id, **kwargs):
+        learning_entry = self.session.query(Learning).filter(Learning.conversation_id == id).first()
+        if learning_entry:
+            for key, value in kwargs.items():
+                setattr(learning_entry, key, value)
+            self.session.commit()
+
     def get_learning_entries_with_state(self, state):
         return self.session.query(Learning).filter(Learning.state == state).all()
 
+    def get_learning_entry_by_id(self, conversation_id):
+        return self.session.query(Learning).filter(Learning.conversation_id == conversation_id).first()
+
+    def get_all_learning(self):
+        return self.session.query(Learning).all()
+    
     def list_learning_ids(self):
         """
         Retrieve all conversation IDs from the learning table.
