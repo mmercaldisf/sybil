@@ -25,4 +25,4 @@ if __name__ == "__main__":
             
             writer.writerow({'Evaluation':entry.evaluation,'Question': entry.question, 'Answer': entry.answer, 'Nuance': entry.nuance, 'Sources': entry.conversation_id})
 
-    print(f"Learning Export Complete: Imported {len(learning)} entries.")
+    print(f"Learning Export Complete: Exported {len(learning)} entries.")
