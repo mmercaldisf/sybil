@@ -34,7 +34,7 @@ def is_request_complete(messages):
     return False
 
 def get_userid_from_message(message_text):
-    return re.search(r"<@(U\w+)>", message_text).group(1)
+    return re.search(r"<@([UW]\w+)>", message_text).group(1)
 
 def knowledge_manager_routine():
     print("Starting Knowledge Manager")
