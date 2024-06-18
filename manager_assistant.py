@@ -130,10 +130,10 @@ def assistant_manager_routine():
                 # Get the answer
                 answer_text = answer.response
                 # Send the answer
-                #send_bot_message(client, channel_id, answer_text + "\n\n" + config.ANSWER_DISCLAIMER, thread_ts=answer.conversation_id)
-                #send_bot_block_message(client, channel_id, config.QUESTION_PROMPT_MESSAGE, YES_NO_BLOCK, thread_ts=answer.conversation_id)
+                send_bot_message(client, channel_id, answer_text + "\n\n" + config.ANSWER_DISCLAIMER, thread_ts=answer.conversation_id)
+                send_bot_block_message(client, channel_id, config.QUESTION_PROMPT_MESSAGE, YES_NO_BLOCK, thread_ts=answer.conversation_id)
                 # Update the assistant entry
-                #db.update_assistant(answer.conversation_id, state="RESPONDED")
+                db.update_assistant(answer.conversation_id, state="RESPONDED")
                 print(f"Assistant Request {answer.conversation_id} - Answer Sent")
         print(f"Processed {proc_count} - Sleeping...")
         time.sleep(config.ASSISTANT_INTERVAL)
