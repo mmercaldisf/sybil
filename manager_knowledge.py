@@ -3,14 +3,10 @@ import time
 import re
 import json
 
-from slack_sdk import WebClient
-
 import config
 import db_manager
 
 
-
-# -- WebClient Stuff
 
 def is_message_help_request(message_content):
     if not 'blocks' in message_content:
@@ -31,10 +27,9 @@ def knowledge_manager_routine():
     db = db_manager.DBManager(config.DATABASE_URL)
     channel_id = config.TARGET_CHANNEL_ID
     
-    client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
     while config.SERVICE_RUNNING:
         learning_ids = db.list_learning_ids()       
-        # iterates over the conversations table and looks for any new entries to put into the assistant table for AI workflows
+        # iterates over the conversations table and looks for any new entries to put into the learning table for AI workflows
         conversations = db.get_all_conversations()
         for conversation in conversations:
             conversation_id = conversation.id
