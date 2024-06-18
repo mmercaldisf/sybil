@@ -4,8 +4,37 @@ import dirtyjson
 import json
 import llm_gateway
 
-def get_json_response_from_llm(prompt,temperature=0.1):
-    max_attempts = 3
+def clean_json_output(output):
+    output = output.strip()
+    if output.startswith("```json"):
+        output = output[7:]
+    if output.endswith("```"):
+        output = output[:-3]
+    cleaned_output = output.strip()
+
+    try:
+        json_data = dirtyjson.loads(cleaned_output)
+    except json.JSONDecodeError as e:
+        print(f"JSON decoding error: {e}")
+        return cleaned_output
+
+    def clean_json(data):
+        if isinstance(data, dict):
+            return {key: clean_json(value) for key, value in data.items()}
+        elif isinstance(data, list):
+            return [clean_json(item) for item in data]
+        elif isinstance(data, str):
+            return "" if data.lower() in ["unknown", "na", "null"] else data
+        else:
+            return data
+
+    cleaned_json_data = clean_json(json_data)
+    #cleaned_output = json.dumps(cleaned_json_data, ensure_ascii=False)
+
+    return cleaned_json_data
+
+def get_json_response_from_llm(prompt,temperature=0.1,fields=[]):
+    max_attempts = 50
     current_attempt = 0
     while current_attempt < max_attempts:    
         current_attempt +=1
@@ -13,12 +42,19 @@ def get_json_response_from_llm(prompt,temperature=0.1):
         if not response:
             continue
         try:
-            # nudge the response to json for leading issues.
-            response = response[response.find("{"):]
-            return dirtyjson.loads(response)
+            response = clean_json_output(response)
+            for field in fields:
+                if response.get(field) == None:
+                    print(f"Failed to Get Response with Field: {field} - Retrying...")
+                    print(response)
+                    time.sleep(5)
+                    continue
+            return response
+        
         except Exception as e:
             print("Failed to Get JSON - Reattempting...")
             print(response)
+
             time.sleep(5)
             continue
     print("Max Retries Exceeded - Giving Up...")
