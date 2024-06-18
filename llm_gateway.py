@@ -101,7 +101,7 @@ def process_gateway_request(endpoint, data, max_attempts=0):
     return False, response
 
 
-def generate(prompt, model="llmgateway__OpenAIGPT4Omni", temperature=0.7, max_attempts=0):
+def generate(prompt, model="gpt-4-0125-preview", temperature=0.7, max_attempts=0):
     data = {
         "prompt":prompt,
         "temperature":temperature,
