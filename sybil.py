@@ -30,4 +30,6 @@ if __name__ == "__main__":
         thread.daemon = True
         thread.start()
     # The listener for events kind of has to be the last thing that runs... it's fine.
+    #while True:
+    #    pass
     feedback_manager_routine()
