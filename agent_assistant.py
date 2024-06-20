@@ -13,11 +13,13 @@ def generate_answer(user_info, req_info, knowledgebase):
     ## INSTRUCTIONS ##
     Assume the role of a Security Engineering Lead who is well-versed in security protocols and solutions. Using the detailed information available, respond to the requester's inquiry. Your answers should be informed and precise, as if you are consulting your extensive experience and knowledge in security engineering.
     ** IMPORTANT ** the response should be framed as if you are responding to the requester directly from your own knowledge, not as a direct quote from the knowledgebase. You can reference the knowledgebase for additional information, but the response should be personalized and tailored to the user's inquiry.
+
     ## OUTPUT FORMAT ##
     Please provide your analysis in the following JSON format:
     - "response": "Provide a well-informed response to the requester, utilizing your extensive security knowledge.",
     - "justification": "Explain the reasoning behind your response, referencing your depth of knowledge in the field."
 
+    
     ## REQUEST INFO ##
     ```""" + req_info + """```
 
@@ -26,10 +28,9 @@ def generate_answer(user_info, req_info, knowledgebase):
 
     ## KNOWLEDGEBASE ##
     ```""" + knowledgebase + """```
-
     """
 
-    response = llm_utils.get_json_response_from_llm(prompt)
+    response = llm_utils.get_json_response_from_llm(prompt,fields=['response','justification'])
     return response
 
 
@@ -48,7 +49,6 @@ def determine_answerable(user_info, req_info, knowledgebase):
     - "answerable": "YES/NO" (State whether the request can be answered using the knowledgebase based on your evaluation.)
     - "references": [Question ID numbers] (e.g. [4,1,2,7]) (List the numbers of relevant Question/Answer pairs from the knowledgebase that could address this request, if any.)
 
-
     ## REQUEST INFO ##
     ```""" + req_info + """```
 
@@ -57,10 +57,9 @@ def determine_answerable(user_info, req_info, knowledgebase):
 
     ## KNOWLEDGEBASE ##
     ```""" + knowledgebase + """```
-
     """
 
-    response = llm_utils.get_json_response_from_llm(prompt)
+    response = llm_utils.get_json_response_from_llm(prompt,fields=["feedback", "answerable", "references"])
     return response
 
 def generate_request_information(db, conversation_id):

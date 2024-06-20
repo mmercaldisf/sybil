@@ -8,7 +8,6 @@ import time
 import llm_utils
 import config
 
-
 # AI EVALUATION STEP
 def generate_evaluation(user_info, req_info):
     prompt = """
@@ -20,21 +19,21 @@ def generate_evaluation(user_info, req_info):
     4. Evaluate if this interaction could be automated: Could a chatbot handle this type of request in the future without human intervention?
     5. Consider if this request could be formulated into a generic Question/Answer pair that could be used to address similar future inquiries.
 
+    ## REQUEST INFORMATION ##
+    ```""" + req_info + """```
+
+    ## USER INFORMATION ##
+    ```""" + user_info + """```
+
     ## OUTPUT FORMAT ##
     Please provide your analysis in a JSON format with the following keys:
     - "feedback": "Provide your detailed feedback here.",
     - "chatbot": "YES/NO"  (Indicate whether a chatbot could handle such a request based on current technology and available information.)
     - "justification": "Explain your reasoning for whether or not this request can be handled automatically by a chatbot."
 
-    ## REQUEST INFORMATION ##
-    ```""" + req_info + """```
-
-    ## USER INFORMATION ##
-    ```""" + user_info + """```
     """
 
-
-    response = llm_utils.get_json_response_from_llm(prompt)
+    response = llm_utils.get_json_response_from_llm(prompt,fields=['feedback','chatbot','justification'])
     return response
 
 def determine_answerable(user_info, req_info, knowledgebase):
@@ -51,7 +50,7 @@ def determine_answerable(user_info, req_info, knowledgebase):
     - "answerable": "YES/NO" (State whether the request can be answered using the knowledgebase based on your evaluation).   
     - "references": [Question ID numbers] (e.g. [4,1,2,7]) (List the numbers of relevant Question/Answer pairs from the knowledgebase that could address this request, if any.)
 
-
+    
     ## REQUEST INFO ##
     ```""" + req_info + """```
 
@@ -62,7 +61,7 @@ def determine_answerable(user_info, req_info, knowledgebase):
     ```""" + knowledgebase + """```
     """
 
-    response = llm_utils.get_json_response_from_llm(prompt)
+    response = llm_utils.get_json_response_from_llm(prompt,fields=['feedback','answerable','references'])
     return response
 
 def generate_qan(user_info, req_info, evaluation_data):
@@ -87,7 +86,7 @@ def generate_qan(user_info, req_info, evaluation_data):
     ```""" + evaluation_data + """```
 
      """
-    response = llm_utils.get_json_response_from_llm(prompt)
+    response = llm_utils.get_json_response_from_llm(prompt,fields=['question','answer','nuance'])
     return response    
 
 def generate_request_information(db, conversation_id):
