@@ -9,7 +9,6 @@ SERVICE_RUNNING = False
 # Set the Database URL for your chosen Backend
 WORKSPACE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__)))
 
-
 # Set the path for your environment file
 ENV_PATH = os.path.join(WORKSPACE_PATH, 'env.conf')
 
@@ -45,6 +44,19 @@ STRICT_ANSWERING_MODE = True
 
 # -- This option allows agents to respond to channels - if disabled, agents will run, but only operate passively.
 ACTIVE_AGENT_MODE = False
+active_agent_value = os.environ.get("ACTIVE_AGENT_MODE",None)
+if active_agent_value != None:
+    try:
+        active_agent_value = int(active_agent_value)
+        if active_agent_value == 1:
+            ACTIVE_AGENT_MODE = True
+    except:
+        pass
+
+if ACTIVE_AGENT_MODE:
+    print("WARNING: Agent is in Active Mode - Responses will be sent.")
+else:
+    print("INFO: Agent is in Passive Mode - No Responses will be sent.")
 
 # Set the Message Detection Items for the Workflow
 WORKFLOW_MESSAGE_PREAMBLE = "*Name of Submitter:*"
