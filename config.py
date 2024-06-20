@@ -18,17 +18,19 @@ if os.environ.get("SYBIL_CONFIG"):
     ENV_PATH = os.path.abspath(os.environ.get("SYBIL_CONFIG"))
 load_dotenv(ENV_PATH)
 
-DB_FILENAME = os.environ.get("DB_FILENAME","sybil.db")
+# Set this to the channel ID of the channel you want to monitor
+TARGET_CHANNEL_ID= os.environ.get("TARGET_CHANNEL_ID","fff")
+# Set this to the bot ID of the workflow bot that is creating requests.
+TARGET_BOT_ID=os.environ.get("TARGET_WORKFLOW_ID","fff")
+
+
+
+DB_FILENAME = f"{TARGET_CHANNEL_ID}.db"
 DATABASE_URL = f"sqlite:///{os.path.join(WORKSPACE_PATH, DB_FILENAME)}"
 print(f"Database is {DATABASE_URL}")
 REVIEWER_HOST = "127.0.0.1"
 REVIEWER_PORT = 5000
 
-# Set this to the channel ID of the channel you want to monitor
-TARGET_CHANNEL_ID= os.environ.get("TARGET_CHANNEL_ID","C073RQ40WE5")
-# Set this to the bot ID of the workflow bot that is creating requests.
-TARGET_BOT_ID=os.environ.get("TARGET_WORKFLOW_ID","B073FJB30H2")
-BOT_NAME = "Security Advisory Workflow"
 
 # Refresh Frequency of the Various Modules (in seconds)
 SCRAPER_INTERVAL = 600
