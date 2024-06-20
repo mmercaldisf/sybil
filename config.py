@@ -43,8 +43,8 @@ ASSISTANT_AGENT_INTERVAL = 30
 # -- This flag determines whether the bot will respond to messages in the channel if it has no knowledgebase content to reference
 STRICT_ANSWERING_MODE = True
 
-# -- This flag prevents the bot from actually answering anything in the channel, for testing purposes only.
-BLOCK_BOT_ANSWERING = True
+# -- This option allows agents to respond to channels - if disabled, agents will run, but only operate passively.
+ACTIVE_AGENT_MODE = False
 
 # Set the Message Detection Items for the Workflow
 WORKFLOW_MESSAGE_PREAMBLE = "*Name of Submitter:*"
