@@ -12,6 +12,10 @@ WORKSPACE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__)))
 
 # Set the path for your environment file
 ENV_PATH = os.path.join(WORKSPACE_PATH, 'env.conf')
+
+# Override fallback config path if specified in envar.
+if os.environ.get("SYBIL_CONFIG"):
+    ENV_PATH = os.path.abspath(os.environ.get("SYBIL_CONFIG"))
 load_dotenv(ENV_PATH)
 
 DB_FILENAME = os.environ.get("DB_FILENAME","sybil.db")
