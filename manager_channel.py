@@ -43,7 +43,7 @@ def fetch_all_top_level_messages_from_user(client, channel_id, user_id, timestam
             for rmsg in rmsgs:
                 if not "subtype" in rmsg:
                     if "bot_profile" in rmsg:
-                        if rmsg["bot_profile"]["name"] == config.BOT_NAME:
+                        if "bot_profile" in rmsg and rmsg.get('user') == user_id:                        
                             messages.append(rmsg)
         # Slack uses a "response_metadata" object with a "next_cursor" to indicate more results
         cursor = response.get('response_metadata', {}).get('next_cursor')
@@ -108,11 +108,10 @@ def channel_manager_routine():
     print("Starting Channel Manager")
     db = db_manager.DBManager(config.DATABASE_URL)
     channel_id = config.TARGET_CHANNEL_ID
-    bot_id = config.TARGET_BOT_ID
     client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
     while config.SERVICE_RUNNING:
         # Get All Top Level Messages
-        messages = fetch_all_top_level_messages_from_user(client, channel_id, bot_id)
+        messages = fetch_all_top_level_messages_from_user(client, channel_id, config.TARGET_BOT_ID)
         print(f"[Channel Manager] Processing {len(messages)}...")
         for message in messages:
             # Get All Thread Messages
