@@ -44,6 +44,18 @@ YES_NO_BLOCK = [
     }
 ]
 
+def send_bot_reaction(client, channel_id, thread_ts, reaction):
+    # Add a reaction to the parent message in the thread
+    try:
+        client.reactions_add(
+            channel=channel_id,
+            timestamp=thread_ts,  # This is the ID of the parent message
+            name=reaction
+        )
+    except Exception as e:
+        print(f"Unable to Add Reaction to Response: {e}")
+        pass
+
 def send_bot_message(client, channel_id, message_text, thread_ts=None):
     response = client.chat_postMessage(channel=channel_id, text=message_text, thread_ts=thread_ts)
     if not response["ok"]:
@@ -125,13 +137,14 @@ def assistant_manager_routine():
 
         # Get all assistant entries with state READY
         answers = db.get_assistant_entries_with_state("ANSWERED")
-        if config.BLOCK_BOT_ANSWERING == False:
+        if config.ACTIVE_AGENT_MODE == True:
             for answer in answers:            
                 # Get the answer
                 answer_text = answer.response
                 # Send the answer
                 send_bot_message(client, channel_id, answer_text + "\n\n" + config.ANSWER_DISCLAIMER, thread_ts=answer.conversation_id)
                 send_bot_block_message(client, channel_id, config.QUESTION_PROMPT_MESSAGE, YES_NO_BLOCK, thread_ts=answer.conversation_id)
+                send_bot_reaction(client,channel_id,answer.conversation_id,"einstein-gpt-sparkle")
                 # Update the assistant entry
                 db.update_assistant(answer.conversation_id, state="RESPONDED")
                 print(f"Assistant Request {answer.conversation_id} - Answer Sent")
