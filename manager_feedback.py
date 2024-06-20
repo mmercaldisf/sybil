@@ -9,6 +9,12 @@ import db_manager
 
 app = App(token=os.environ.get("SLACK_BOT_TOKEN"))
 
+
+def action_user_authorized(thread_ts, user_id):
+    intended_user_id = db_manager.DBManager(config.DATABASE_URL).get_assistant_user_id(thread_ts)
+    #print(f"{thread_ts} {user_id} {intended_user_id}")
+    return (user_id == intended_user_id)
+
 # This is just here to shut up the debug message.
 @app.event("message")
 def handle_message_events(body, logger):
@@ -31,9 +37,8 @@ def handle_yes_button(ack, body, client):
     # Retrieve the thread timestamp, which is the parent message ID
     thread_ts = body["container"]["thread_ts"]
     user_id = body["user"]["id"]
-    intended_user_id = db_manager.DBManager(config.DATABASE_URL).get_assistant_user_id(thread_ts)
-    
-    if user_id != intended_user_id:
+
+    if not action_user_authorized(thread_ts, user_id):
         # Optionally, send a message to the user that they cannot interact with this button
         client.chat_postEphemeral(
             channel=body["channel"]["id"],
@@ -76,9 +81,7 @@ def handle_no_button(ack, body, client):
     ts = body["container"]["message_ts"]
     thread_ts = body["container"]["thread_ts"]
 
-    intended_user_id = db_manager.DBManager().get_assistant_user_id(thread_ts)
-
-    if user_id != intended_user_id:
+    if not action_user_authorized(thread_ts, user_id):
         client.chat_postEphemeral(
             channel=body["channel"]["id"],
             user=user_id,
@@ -130,9 +133,9 @@ def open_feedback_modal(ack, body, client):
     channel_id = body["channel"]["id"]
     message_ts = body["container"]["message_ts"]
     thread_ts = body["container"]["thread_ts"]
-    intended_user_id = db_manager.DBManager(config.DATABASE_URL).get_assistant_user_id(thread_ts)
+
     user_id = body["user"]["id"]
-    if user_id != intended_user_id:
+    if not action_user_authorized(thread_ts, user_id):
         client.chat_postEphemeral(
             channel=channel_id,
             user=user_id,
