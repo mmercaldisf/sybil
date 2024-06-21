@@ -9,8 +9,8 @@ SERVICE_RUNNING = False
 # Set the Database URL for your chosen Backend
 WORKSPACE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__)))
 if os.environ.get("DB_ROOT_PATH",None):
-    WORKSPACE_PATH = os.environ.get("DB_ROOT_PATH")
-    
+    WORKSPACE_PATH = os.path.abspath(os.environ.get("DB_ROOT_PATH"))
+
 # Set the path for your environment file
 ENV_PATH = os.path.join(WORKSPACE_PATH, 'env.conf')
 
