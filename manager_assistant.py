@@ -135,7 +135,7 @@ def assistant_manager_routine():
                 print(f"New Assistant Request {conversation_id} - Added to DB")
             proc_count += 1
 
-        # Get all assistant entries with state READY
+        # Get all assistant entries with state ANSWERED
         answers = db.get_assistant_entries_with_state("ANSWERED")
         if config.ACTIVE_AGENT_MODE == True:
             for answer in answers:            
