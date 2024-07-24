@@ -71,6 +71,24 @@ def send_bot_block_message(client, channel_id, message_text, blocks, thread_ts=N
         return None
     return response
 
+def get_single_top_level_message(client, conversation_id, ts):
+    try:
+        # Call the conversations.history method using the WebClient
+        # The client passes the token you included in initialization    
+        result = client.conversations_history(
+            channel=conversation_id,
+            inclusive=True,
+            oldest=ts,
+            limit=1
+        )
+
+        message = result["messages"][0]
+        return message
+
+    except Exception as e:
+        print(f"Error: {e}")
+    return None
+
 # -- WebClient Stuff
 
 def is_message_help_request(message_content):
@@ -138,7 +156,14 @@ def assistant_manager_routine():
         # Get all assistant entries with state ANSWERED
         answers = db.get_assistant_entries_with_state("ANSWERED")
         if config.ACTIVE_AGENT_MODE == True:
-            for answer in answers:            
+            for answer in answers:        
+                # Verify one last time that the message hasn't been claimed or completed
+                original_message = get_single_top_level_message(client, channel_id, answer.conversation_id)
+                if original_message is not None:
+                    if config.is_request_claimed(original_message) or config.is_request_complete(original_message):
+                        # Update the entry as SKIPPED and do not respond.
+                        db.update_assistant(answer.conversation_id, state="SKIPPED")
+                        continue
                 # Get the answer
                 answer_text = answer.response
                 # Send the answer
